@@ -1,0 +1,72 @@
+require(shiny)
+require(dplyr)
+require(ggplot2)
+
+# data set up
+data_BT <- read.csv('./data/app_data.csv', header = T) # study level metadata
+data_2014 <- read.csv('./data/2014BT.csv', header = T) # metrics from Dornelas et al. 2014
+data_full <- inner_join(data_2014,data_BT, by = c('ID'='STUDY_ID'))
+
+climate_list = unique(data_full$CLIMATE)
+names(climate_list) <- unique(data_full$CLIMATE)
+
+values <- c(unique(data_full$TAXA))
+names(values)<- c(unique(data_full$TAXA))
+
+# Define UI for application that draws a histogram
+
+ui <- fluidPage(
+  
+  # Sidebar with a slider input
+  sidebarLayout(
+    sidebarPanel(
+      # Application title
+      h1("Species richness change over time"),
+      h4("Using BioTIME data from the Dornelas et al. 2014 Science paper"),
+      sliderInput("years", # input ID
+                  "Years to display:", # display title
+                  min = min(data_2014$Year),
+                  max = max(data_2014$Year),
+                  step = 1,
+                  value = c(min(data_2014$Year), max(data_2014$Year))),
+      # checkboxGroupInput('taxa',h3,)
+      checkboxGroupInput("taxa",
+                         "Checkbox for Taxa",
+                         choices=values,
+                         selected=unique(data_full$TAXA)
+      ),
+      selectInput("CLIMATE", label = h3("Climate"), 
+                  choices = climate_list,
+                  selected = unique(data_full$CLIMATE))
+    ),
+
+    
+    # Show a plot of the generated distribution
+    mainPanel(#
+      plotOutput("distPlot")
+    )
+  )
+)
+
+# Define server logic required to draw a histogram
+server <- function(input, output) {
+  
+  data_climatefiltered <-reactive ({
+    data_full %>% filter (CLIMATE %in% input$CLIMATE & TAXA %in% input$taxa)
+  })
+  
+  output$distPlot <- renderPlot({
+    
+    ggplot(data = data_climatefiltered()) +
+      geom_line(aes(x = Year, y = S, color = ID, group = ID)) +
+      geom_smooth(aes(x = Year, y = S), method = "loess") +
+      theme_bw(base_size = 13) +
+      scale_x_continuous(limits = input$years) +
+      scale_y_log10()
+    
+  })
+}
+
+
+# Run the application 
+shinyApp(ui = ui, server = server)
