@@ -1,0 +1,11 @@
+library("tidyverse")
+library("leaflet")
+library('mapview')
+library('leaflet.extras')
+data_BT <- read.csv('./data/app_data.csv', header = T)
+data_2014 <- read.csv('./data/2014BT.csv', header = T) 
+full <- inner_join(data_2014,data_BT, by = c('ID'='STUDY_ID'))
+pal <- colorFactor(palette = 'Set3', levels = unique(full$TAXA))
+mapview(full, zcol = "TAXA", xcol = "CENT_LONG", ycol = "CENT_LAT",color = pal , crs = 4269, grid = FALSE,  label = full$TAXA, legend = FALSE) 
+
+
